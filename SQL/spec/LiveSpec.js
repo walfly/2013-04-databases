@@ -6,26 +6,23 @@ var request = require("request"); // You might need to npm install the request m
 
 describe("Persistent Node Chat Server", function() {
   var dbConnection;
+  dbConnection = mysql.createConnection({
+  /* TODO: Fill this out with your mysql username */
+    user: "root",
+  /* and password. */
+    password: "",
+    database: "chat"
+  });
+  dbConnection.connect();
 
-  beforeEach(function() {
-    dbConnection = mysql.createConnection({
-    /* TODO: Fill this out with your mysql username */
-      user: "",
-    /* and password. */
-      password: "",
-      database: "chat"
-    });
-    dbConnection.connect();
-
-    var tablename = ""; // TODO: fill this out
+  beforeEach(function(done) {
+    var tablename = "messages"; // TODO: fill this out
 
     /* Empty the db table before each test so that multiple tests
      * (or repeated runs of the tests) won't screw each other up: */
-    dbConnection.query("DELETE FROM " + tablename);
-  });
-
-  afterEach(function() {
-    dbConnection.end();
+    dbConnection.query("DELETE FROM " + tablename, function(err) {
+      done();
+    });
   });
 
   it("Should insert posted messages to the DB", function(done) {
@@ -39,8 +36,8 @@ describe("Persistent Node Chat Server", function() {
               /* Now if we look in the database, we should find the
                * posted message there. */
 
-              var queryString = "";
-              var queryArgs = [];
+              var queryString = "SELECT username, message FROM messages WHERE username = ?";
+              var queryArgs = ["Valjean"];
               /* TODO: Change the above queryString & queryArgs to match your schema design
                * The exact query string and query args to use
                * here depend on the schema you design, so I'll leave
@@ -62,7 +59,7 @@ describe("Persistent Node Chat Server", function() {
 
   it("Should output all messages from the DB", function(done) {
     // Let's insert a message into the db
-    var queryString = "";
+    var queryString = "INSERT INTO messages (username, message) VALUES (?, ?)";
     var queryArgs = ["Javert", "Men like you can never change!"];
     /* TODO - The exact query string and query args to use
      * here depend on the schema you design, so I'll leave
@@ -74,9 +71,10 @@ describe("Persistent Node Chat Server", function() {
          * the message we just inserted: */
         request("http://127.0.0.1:8080/classes/room1",
           function(error, response, body) {
-            var messageLog = JSON.parse(body);
-            expect(messageLog[0].username).toEqual("Javert");
-            expect(messageLog[0].message).toEqual("Men like you can never change!");
+            var results = JSON.parse(body).results;
+
+            expect(results[0].username).toEqual("Javert");
+            expect(results[0].message).toEqual("Men like you can never change!");
             done();
           });
       });
